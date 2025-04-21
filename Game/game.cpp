@@ -371,7 +371,7 @@ void Game::movePlayer(int direction)
         throw std::runtime_error("Invalid player movement: out of bounds"); // Error if out of bounds
     }
     char target_pos = map.at(new_h).at(new_w); // Get the target position
-    // map.at(h).at(w) = player.getDirection();
+    map.at(h).at(w) = player.getDirection();
     if (target_pos == ' ')
     {
         // Move to empty space
