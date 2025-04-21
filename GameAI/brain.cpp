@@ -89,7 +89,7 @@ int Brain::getNextMove(GameState& gamestate) {
             }
             current_state = RIGHT_MOVE;
         }
-
+        // Move right till AI hits a wall
         if (current_state == RIGHT_MOVE) {
             while (!wall_right) {
                 if (direction != '>') return updateMoveHistory(4);
@@ -98,7 +98,7 @@ int Brain::getNextMove(GameState& gamestate) {
             right_blocked = true;
             current_state = ZIGZAG;
         }
-
+        //Logic for zigzag movement in stage 0
         if (current_state == ZIGZAG) {
             // Priority: If last move was down, move right if possible
             if (prev_move == 3 && !wall_right) {
@@ -120,7 +120,7 @@ int Brain::getNextMove(GameState& gamestate) {
                 }
                 return updateMoveHistory(0);
             }
-            // Try to move right and up (only if last move wasn't down)
+            // Try to move right and up (only if last move was not down)
             else if (!wall_right && !wall_up_right && prev_move != 3) {
                 if (direction != '>') return updateMoveHistory(4);
                 current_state = START;
@@ -153,35 +153,72 @@ int Brain::getNextMove(GameState& gamestate) {
 
     // Stage 1: Food collection
     if (stage == 1) {
-        if (local_grid[1][1] == '0') return updateMoveHistory(0);
+        //if (local_grid[1][1] == '0') return updateMoveHistory(0);
         
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                if (local_grid[i][j] == '0') {
-                    if (i < 1 && !wall_up) {
-                        if (direction != '^') return updateMoveHistory(1);
-                        return updateMoveHistory(1);
-                    }
-                    else if (i > 1 && !wall_down) {
-                        if (direction != 'v') return updateMoveHistory(3);
-                        return updateMoveHistory(3);
-                    }
-                    else if (j < 1 && !wall_left) {
-                        if (direction != '<') return updateMoveHistory(2);
-                        return updateMoveHistory(2);
-                    }
-                    else if (j > 1 && !wall_right) {
-                        if (direction != '>') return updateMoveHistory(4);
-                        return updateMoveHistory(4);
-                    }
+        const int MOVE_UP = 0;
+        const int MOVE_DOWN = 1;
+        const int MOVE_RIGHT = 2;
+        const int CHECK_RIGHT = 3;
+        static int current_state = MOVE_UP;
+
+        if (current_state == MOVE_UP) {
+            if (!wall_up) {
+                if (direction != '^') return updateMoveHistory(1);
+                return updateMoveHistory(1);
+            }
+            current_state = MOVE_DOWN;
+        }
+
+        if (current_state == MOVE_DOWN) {
+            if (!wall_down) {
+                if (direction != 'v') return updateMoveHistory(3);
+                return updateMoveHistory(3);
+            }
+            current_state = MOVE_RIGHT;
+        }
+
+        if (current_state == MOVE_RIGHT) {
+            if (!wall_right) {
+                if (direction != '>'){
+                    current_state = MOVE_UP;
+                    right_blocked = false;
+                    return updateMoveHistory(4);
+                }
+                right_blocked = false; // Reset right_blocked since right move succeeded
+                current_state = MOVE_UP;
+                return updateMoveHistory(4);
+            }
+            else {
+                right_blocked = true;
+                current_state = CHECK_RIGHT;
+                // Since right is blocked, start moving up as per the pattern
+                if (!wall_up) {
+                    if (direction != '^') return updateMoveHistory(1);
+                    return updateMoveHistory(1);
                 }
             }
         }
-        
-        if (!wall_right) return updateMoveHistory(4);
-        else if (!wall_down) return updateMoveHistory(3);
-        else if (!wall_left) return updateMoveHistory(2);
-        else return updateMoveHistory(1);
+
+        if (current_state == CHECK_RIGHT) {
+            // After moving up, check if right is open
+            if (prev_move == 1 && !wall_right) {
+                if (direction != '>') {
+                    right_blocked = false;
+                    current_state = MOVE_UP;
+                    return updateMoveHistory(4);
+                }
+                right_blocked = false;
+                current_state = MOVE_UP;
+                return updateMoveHistory(4);
+            }
+            // Otherwise, continue moving up until hitting a wall
+            else if (!wall_up) {
+                if (direction != '^') return updateMoveHistory(1);
+                return updateMoveHistory(1);
+            }
+            // Once a wall is hit, transition to MOVE_DOWN
+            current_state = MOVE_DOWN;
+        }
     }
 
     // Stage 2: Spiral navigation
